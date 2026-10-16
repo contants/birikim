@@ -1,9 +1,9 @@
 {
-    "web":  1,
+    "web":  2,
     "webUrl":  "https://raw.githubusercontent.com/contants/birikim/main/web/index.html",
-    "webMinApk":  1,
-    "apk":  1,
-    "apkUrl":  "https://github.com/contants/birikim/releases/download/v1.0/Birikim.apk",
-    "apkName":  "1.0",
-    "notes":  "Ilk surum."
+    "webMinApk":  2,
+    "apk":  2,
+    "apkUrl":  "https://github.com/contants/birikim/releases/download/v1.1/Birikim.apk",
+    "apkName":  "1.1",
+    "notes":  "Play Protect uyumlu: bildirim okuma kaldirildi, banka SMS\u0027i paylas/yapistir ile eklenir."
 }
