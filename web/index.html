@@ -217,30 +217,13 @@ textarea{min-height:84px;resize:vertical}
           <button class="primary" id="saveLimits">Kaydet</button>
         </div>
         <div class="card tab">
-          <div class="card-head"><span class="label">Otomatik harcama kaydı</span><span id="capPill" class="pill off">Kapalı</span></div>
-          <p class="note">Ziraat'ın (ve diğer bankaların) "...TL harcama yapılmıştır" bildirimlerini ve SMS'lerini okuyup harcamayı kendisi yazar. Bildirimler telefondan dışarı çıkmaz; şifre ve doğrulama kodu içeren mesajlar hiç kaydedilmez.</p>
-          <div class="steps" id="capSteps">
-            <div class="step"><span class="num">1</span><p>Android önce "Kısıtlanmış ayar" diyebilir. Uygulama bilgilerini aç, sağ üstteki <b>⋮</b> menüsünden <b>Kısıtlanmış ayarlara izin ver</b>'i seç.</p><button class="ghost sm" id="openDetails">Uygulama bilgilerini aç</button></div>
-            <div class="step"><span class="num">2</span><p><b>Bildirim erişimi</b> ekranında Birikim'i aç.</p><button class="ghost sm" id="openListener">Bildirim erişimini aç</button></div>
+          <span class="label">Banka SMS'inden ekleme</span>
+          <p class="note">Kartla ödeyince Ziraat'tan gelen "...TL harcama yapılmıştır" SMS'ini Birikim okur; tutarı, işyerini ve kategoriyi kendisi doldurur, sen sadece Kaydet'e basarsın.</p>
+          <div class="steps">
+            <div class="step"><span class="num">1</span><p>Mesajlar'da banka SMS'ine <b>uzun bas</b>, <b>Paylaş → Birikim</b>'i seç.</p></div>
+            <div class="step"><span class="num">2</span><p>Paylaş yoksa <b>Kopyala</b>'ya bas, Birikim'de <b>📋 Banka mesajını yapıştır</b>'a dokun.</p></div>
           </div>
-          <div class="field"><label class="note" for="capMode">Harcama yakalanınca</label>
-            <select id="capMode"><option value="ask">Bana sor (Ekle / Yoksay)</option><option value="auto">Otomatik ekle (bildirimden geri alınabilir)</option></select></div>
-          <details>
-            <summary class="link">Dene: bir banka mesajı yapıştır</summary>
-            <div class="tab" style="margin-top:8px">
-              <textarea id="testTxt" placeholder="Örn: Bankkart'ınızla MIGROS işyerinden 125,50 TL harcama yapılmıştır."></textarea>
-              <button class="ghost" id="testBtn">Çözümle</button>
-              <p class="note" id="testOut"></p>
-            </div>
-          </details>
-          <details id="logBox">
-            <summary class="link">Son banka bildirimleri</summary>
-            <div class="tab" style="margin-top:8px">
-              <p class="note">Bir harcama yakalanmadıysa (✗) metni kopyalayıp bana gönder, okuyucuyu ona göre ayarlarım.</p>
-              <div class="log" id="logList"></div>
-              <div class="row2"><button class="ghost" id="logCopy">Tümünü kopyala</button><button class="ghost" id="logClear">Temizle</button></div>
-            </div>
-          </details>
+          <p class="note">Birikim bildirimlerini ya da SMS'lerini kendisi okumaz; yalnızca senin paylaştığın mesajı görür. Bu yüzden Play Protect engellemez.</p>
         </div>
       </div>
       <div class="col">
@@ -292,7 +275,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 'use strict';
-const WEB_VERSION = 1;
+const WEB_VERSION = 2;
 const NATIVE = window.Android || null;
 const CATS = [
   { k: 'market', n: 'Market', e: '🛒' }, { k: 'yemek', n: 'Yemek', e: '🍔' }, { k: 'kafe', n: 'Kafe', e: '☕' },
@@ -477,6 +460,7 @@ function renderToday() {
             : `<div class="g-big mono">${money(today)}</div><div class="g-sub">bugün</div><p class="note">Ayarlar'dan günlük limit belirle.</p>`}
         </div>
         ${pendHTML}
+        <button class="ghost" id="pasteBtn">📋 Banka mesajını yapıştır</button>
         <div class="card tab">
           <div class="card-head"><span class="label">Bu hafta</span><span class="mono" style="font-weight:700">${money(week)}${weekly ? ' / ' + money(weekly) : ''}</span></div>
           ${weekly ? `<div class="progress ${week > weekly ? 'over' : ''}"><i style="width:${Math.min(100, week / weekly * 100)}%"></i></div><span class="note">${week <= weekly ? 'Hafta sonuna kadar kalan: ' + money(weekly - week) : 'Haftalık limiti ' + money(week - weekly) + ' aştın.'}</span>` : ''}
@@ -485,7 +469,7 @@ function renderToday() {
       </div>
       <div class="col">
         <div class="card tab"><div class="card-head"><span class="label">Bugünün harcamaları</span><span class="note">${todayList.length} kayıt</span></div>
-          ${todayList.length ? '<div class="list">' + todayList.map(itemHTML).join('') + '</div>' : '<p class="empty">Bugün henüz harcama yok. Elden bir şey aldıysan + ile ekle; kartla ödediklerin kendiliğinden gelir.</p>'}
+          ${todayList.length ? '<div class="list">' + todayList.map(itemHTML).join('') + '</div>' : '<p class="empty">Bugün henüz harcama yok. Elden bir şey aldıysan + ile ekle; kartla ödediysen banka SMS’ini kopyala ve 📋 ile yapıştır.</p>'}
         </div>
         ${jar}
       </div>
@@ -586,26 +570,40 @@ function fillSettings() {
   $('#limDaily').value = D.profile.daily || '';
   $('#limWeekly').value = D.profile.weekly || '';
   $('#setName').value = D.profile.name || '';
-  $('#capMode').value = D.settings.capture;
   $('#remOn').checked = !!D.settings.remindOn;
   $('#remAt').value = D.settings.remindAt;
-  let ok = false; try { ok = NATIVE ? NATIVE.listenerOk() : false; } catch (e) {}
-  const pill = $('#capPill'); pill.className = 'pill ' + (ok ? 'on' : 'off'); pill.textContent = ok ? 'Açık' : 'Kapalı';
-  $('#capSteps').hidden = ok;
-  let log = [];
-  try { log = NATIVE ? JSON.parse(NATIVE.captureLog() || '[]') : []; } catch (e) {}
-  $('#logList').innerHTML = log.length ? log.map(l => `<div><b class="${l.ok ? 'ok' : 'no'}">${l.ok ? '✓ yakalandı' : '✗ harcama sayılmadı'}</b> · <span class="note">${new Date(l.t).toLocaleString('tr-TR')} · ${esc(l.pkg)}</span><br>${esc(l.title ? l.title + ': ' : '')}${esc(l.text)}</div>`).join('') : '<p class="note">Henüz banka bildirimi gelmedi.</p>';
   let ver = 'web'; try { if (NATIVE) ver = NATIVE.version(); } catch (e) {}
   $('#aboutTxt').textContent = 'Birikim ' + ver + ' · ekran sürümü ' + WEB_VERSION + '. Verilerin yalnızca bu telefonda.';
 }
 function syncNative() {
   if (!NATIVE) return;
   const p = (D.settings.remindAt || '21:30').split(':').map(Number);
-  try { NATIVE.setReminder(!!D.settings.remindOn, p[0] || 0, p[1] || 0); NATIVE.setCaptureMode(D.settings.capture); } catch (e) {}
+  try { NATIVE.setReminder(!!D.settings.remindOn, p[0] || 0, p[1] || 0); } catch (e) {}
 }
 
+/* ================= Banka mesajından ekleme (paylaş / yapıştır) ================= */
+function fromBankText(txt) {
+  txt = String(txt || '').trim();
+  if (!txt) { toast('Panoda metin yok. Önce banka SMS\'ini kopyala.'); return; }
+  let r = null; try { r = NATIVE ? JSON.parse(NATIVE.parseTest(txt)) : null; } catch (e) {}
+  if (!r || !(+r.amount > 0)) { toast('Bu mesajda harcama bulamadım. Tutarı + ile kendin ekleyebilirsin.', 4500); return; }
+  const merchant = String(r.merchant || '').slice(0, 60);
+  const dup = D.expenses.some(e => Date.now() - e.t < 30 * 60000 && Math.abs(e.amount - r.amount) < 0.01);
+  sheetCat = merchant ? guessCat(merchant) : (sheetCat || 'market');
+  openSheet(null);
+  sheetMerchant = merchant;
+  const a = Math.round(r.amount * 100) / 100;
+  amt = (a % 1 ? a.toFixed(2) : String(a)).replace('.', ',');
+  $('#noteIn').value = merchant;
+  $('#sheetTitle').textContent = 'Bankadan harcama';
+  renderAmount();
+  if (dup) toast('Dikkat: son 30 dakikada aynı tutarda bir harcama zaten var.', 4500);
+  haptic(15);
+}
+window.onShared = () => { let t = ''; try { t = NATIVE.takeShared(); } catch (e) {} if (t) fromBankText(t); };
+
 /* ================= Ekle / düzenle sayfası ================= */
-let amt = '', sheetCat = 'market', sheetWhen = 0, editing = null, delArmed = false;
+let amt = '', sheetCat = 'market', sheetWhen = 0, editing = null, delArmed = false, sheetMerchant = '';
 function amountValue() { const v = parseFloat(amt.replace(',', '.')); return isFinite(v) ? v : 0; }
 function renderAmount() {
   const el = $('#amtDisp');
@@ -613,7 +611,7 @@ function renderAmount() {
   el.classList.toggle('zero', !amt);
 }
 function openSheet(exp) {
-  editing = exp || null; delArmed = false;
+  editing = exp || null; delArmed = false; sheetMerchant = '';
   amt = exp ? String(exp.amount).replace('.', ',') : '';
   sheetCat = exp ? exp.cat : (sheetCat || 'market');
   sheetWhen = 0;
@@ -636,7 +634,8 @@ function saveSheet() {
     if (e) { e.amount = v; e.cat = sheetCat; if (e.src === 'auto' && note === e.merchant) e.note = ''; else e.note = note; }
   } else {
     const t = sheetWhen ? addDays(new Date(), -sheetWhen).setHours(12, 0, 0, 0) : Date.now();
-    D.expenses.push({ id: uid(), t, amount: v, cat: sheetCat, note, merchant: '', src: 'manual' });
+    const m = sheetMerchant;
+    D.expenses.push({ id: uid(), t, amount: v, cat: sheetCat, note: m && note === m ? '' : note, merchant: m, src: m ? 'auto' : 'manual' });
   }
   haptic(20);
   closeSheet();
@@ -665,6 +664,7 @@ document.addEventListener('click', e => {
   const tb = el.closest('.tabbar button'); if (tb) { showTab(tb.dataset.tab); return; }
   const go = el.closest('[data-tab-go]'); if (go) { showTab(go.dataset.tabGo); return; }
   if (el.closest('#fab')) { openSheet(null); return; }
+  if (el.closest('#pasteBtn')) { if (!NATIVE) { toast('Yapıştırma telefonda çalışır.'); return; } let t = ''; try { t = NATIVE.clipText(); } catch (x) {} fromBankText(t); return; }
   const ed = el.closest('[data-edit]'); if (ed) { const x = D.expenses.find(z => z.id === ed.dataset.edit); if (x) openSheet(x); return; }
   const key = el.closest('[data-key]');
   if (key) {
@@ -696,8 +696,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const id = e.target.id;
   if (e.target.dataset.pcat) { pendCat[e.target.dataset.pcat] = e.target.value; return; }
-  if (id === 'capMode') { D.settings.capture = e.target.value; save(true); syncNative(); toast(D.settings.capture === 'auto' ? 'Harcamalar otomatik eklenecek' : 'Her harcama önce sana sorulacak'); }
-  else if (id === 'remOn' || id === 'remAt') { D.settings.remindOn = $('#remOn').checked; if ($('#remAt').value) D.settings.remindAt = $('#remAt').value; save(true); syncNative(); toast(D.settings.remindOn ? 'Akşam özeti ' + D.settings.remindAt + "'da" : 'Akşam özeti kapalı'); }
+  if (id === 'remOn' || id === 'remAt') { D.settings.remindOn = $('#remOn').checked; if ($('#remAt').value) D.settings.remindAt = $('#remAt').value; save(true); syncNative(); toast(D.settings.remindOn ? 'Akşam özeti ' + D.settings.remindAt + "'da" : 'Akşam özeti kapalı'); }
 });
 $('#sheetClose').addEventListener('click', closeSheet);
 $('#sheetSave').addEventListener('click', saveSheet);
@@ -713,20 +712,6 @@ $('#saveLimits').addEventListener('click', () => {
   changed(); fillSettings(); toast('Limitler kaydedildi');
 });
 $('#saveName').addEventListener('click', () => { D.profile.name = $('#setName').value.trim().slice(0, 30); changed(); toast('Kaydedildi'); });
-$('#openDetails').addEventListener('click', () => { try { NATIVE.openAppDetails(); } catch (e) { toast('Bu ayar telefonda açılır.'); } });
-$('#openListener').addEventListener('click', () => { try { NATIVE.openListenerSettings(); } catch (e) { toast('Bu ayar telefonda açılır.'); } });
-$('#testBtn').addEventListener('click', () => {
-  const txt = $('#testTxt').value.trim();
-  if (!txt) { $('#testOut').textContent = 'Önce bir mesaj yapıştır.'; return; }
-  let r = null; try { r = NATIVE ? JSON.parse(NATIVE.parseTest(txt)) : null; } catch (e) {}
-  $('#testOut').textContent = r ? `✓ ${money(r.amount)}${r.merchant ? ' · ' + r.merchant + ' (' + CAT[guessCat(r.merchant)].n + ')' : ''}${r.card ? ' · kart ****' + r.card : ''}` : (NATIVE ? '✗ Bu mesaj harcama olarak okunmadı. Metni bana gönderirsen ayarlarım.' : 'Deneme telefonda çalışır.');
-});
-$('#logCopy').addEventListener('click', () => {
-  let log = []; try { log = JSON.parse(NATIVE.captureLog() || '[]'); } catch (e) {}
-  const txt = log.map(l => (l.ok ? '[OK] ' : '[X] ') + l.pkg + ' | ' + (l.title || '') + ' | ' + l.text).join('\n');
-  try { NATIVE.copy(txt); toast('Kopyalandı'); } catch (e) {}
-});
-$('#logClear').addEventListener('click', () => { try { NATIVE.clearCaptureLog(); } catch (e) {} fillSettings(); });
 
 /* ================= Güncelleme ================= */
 let upAction = null, manualCheck = false;
@@ -764,7 +749,7 @@ window.onBack = () => {
   if (currentTab !== 'bugun') { showTab('bugun'); return true; }
   return false;
 };
-window.onResumeApp = () => { processPending(); renderAll(); if (currentTab === 'ayarlar') fillSettings(); };
+window.onResumeApp = () => { processPending(); if ($('#sheet').hidden) renderAll(); if (currentTab === 'ayarlar') fillSettings(); window.onShared(); };
 window.onPauseApp = () => save(true);
 setInterval(() => { if (document.visibilityState === 'visible' && $('#sheet').hidden) { const before = pending.length; processPending(); if (pending.length !== before) renderToday(); } }, 5000);
 setInterval(() => { if (currentTab === 'bugun' && $('#sheet').hidden) renderToday(); }, 60000);
@@ -774,6 +759,7 @@ processPending();
 syncNative();
 renderAll();
 showTab('bugun');
+window.onShared();
 if (D.webSeen && D.webSeen < WEB_VERSION) setTimeout(() => toast('Uygulama güncellendi.'), 600);
 D.webSeen = WEB_VERSION;
 save(true);
